@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 
 # Define the URL for BBC News
-url = 'https://www.bbc.com/news'
+url = 'https://www.bbc.com'
 
 # Define the Chrome User-Agent
 headers = {
@@ -15,7 +15,7 @@ headers = {
 
 def fetch_bbc_headlines():
     # Send an HTTP GET request to the BBC News website
-    response = requests.get(url, headers=headers)
+    response = requests.get(url + '/news', headers=headers)
     
     # Check if the request was successful
     if response.status_code == 200:
@@ -30,17 +30,28 @@ def fetch_bbc_headlines():
             headlines = news_section.find_all('a')
             headlines_found = []
             
-            # Extract and print the text of each headline
-            for i, headline in enumerate(headlines, 1):
-                headline_text = f"{headline.get_text().strip()}"
-                if len(headline_text) > 20:
-                    headlines_found.append(headline_text)
+            # Extract and collect the text and href of each headline
+            for headline in headlines:
+                headline_text = headline.get_text().strip()
+                # Remove the 'Live.' prefix if present
+                if headline_text.startswith("Live.\xa0"):
+                    headline_text = headline_text.replace("Live.\xa0", "").strip()
 
-            print(headlines_found)
+                # Ensure the headline has sufficient length
+                if len(headline_text) > 20:
+                    # Get the hyperlink
+                    headline_link = url + headline['href']
+                    # Create a tuple of headline text and link
+                    headlines_found.append((headline_text, headline_link))
+
+            return headlines_found
         else:
             print("The specified news section could not be found.")
+            return []
     else:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
+        return []
 
-# Call the function to fetch and print the headlines
-fetch_bbc_headlines()
+# Call the function to fetch and return the headlines
+headlines = fetch_bbc_headlines()
+print(headlines)
