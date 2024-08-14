@@ -17,9 +17,13 @@ def fetch_bbc_headlines():
         soup = BeautifulSoup(response.content, 'html.parser')
         all_links = soup.find_all('a', href=True)
         
-        article_links = ['https://www.bbc.co.uk' + link['href'] for link in all_links if '/news/articles/' in link['href'] and not link['href'].endswith('#comments')]
+        articles = []
+        for link in all_links:
+            if '/news/articles/' in link['href'] and not link['href'].endswith('#comments'):
+
+                articles.append(('https://www.bbc.co.uk' + link['href'], link.get_text().strip()))
         
-        return article_links
+        return articles
     else:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
         return []
