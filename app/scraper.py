@@ -1,10 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 
-# Define the URL for BBC News
-url = 'https://www.bbc.com'
-
-# Define the Chrome User-Agent
+url = 'https://www.bbc.co.uk/news'
 headers = {
     'User-Agent': (
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
@@ -14,44 +11,18 @@ headers = {
 }
 
 def fetch_bbc_headlines():
-    # Send an HTTP GET request to the BBC News website
-    response = requests.get(url + '/news', headers=headers)
+    response = requests.get(url, headers=headers)
     
-    # Check if the request was successful
     if response.status_code == 200:
-        # Parse the HTML content of the page with BeautifulSoup
         soup = BeautifulSoup(response.content, 'html.parser')
+        all_links = soup.find_all('a', href=True)
         
-        # Locate the div with the ID "nations-news-uk"
-        news_section = soup.find('div', id='nations-news-uk')
+        article_links = ['https://www.bbc.co.uk' + link['href'] for link in all_links if '/news/articles/' in link['href'] and not link['href'].endswith('#comments')]
         
-        if news_section:
-            # Find all anchor tags within this div
-            headlines = news_section.find_all('a')
-            headlines_found = []
-            
-            # Extract and collect the text and href of each headline
-            for headline in headlines:
-                headline_text = headline.get_text().strip()
-                # Remove the 'Live.' prefix if present
-                if headline_text.startswith("Live.\xa0"):
-                    headline_text = headline_text.replace("Live.\xa0", "").strip()
-
-                # Ensure the headline has sufficient length
-                if len(headline_text) > 20:
-                    # Get the hyperlink
-                    headline_link = url + headline['href']
-                    # Create a tuple of headline text and link
-                    headlines_found.append((headline_text, headline_link))
-
-            return headlines_found
-        else:
-            print("The specified news section could not be found.")
-            return []
+        return article_links
     else:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
         return []
 
-# Call the function to fetch and return the headlines
-headlines = fetch_bbc_headlines()
-print(headlines)
+article_links = fetch_bbc_headlines()
+print(article_links)
