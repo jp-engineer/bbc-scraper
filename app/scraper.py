@@ -1,5 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
 url = 'https://www.bbc.co.uk/news'
 headers = {
@@ -9,6 +12,22 @@ headers = {
         'Chrome/114.0.5735.110 Safari/537.36'
     )
 }
+
+# define the database model, create and connect
+Base = declarative_base()
+
+class Article(Base):
+    __tablename__ = 'articles'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    article_id = Column(String, unique=True)
+    title = Column(String)
+    url = Column(String)
+
+engine = create_engine('sqlite:///bbc_articles.db')
+Base.metadata.create_all(engine)
+
+Session = sessionmaker(bind=engine)
+session = Session()
 
 def fetch_headlines():
     response = requests.get(url, headers=headers)
@@ -20,14 +39,19 @@ def fetch_headlines():
         articles = []
         for link in all_links:
             if '/news/articles/' in link['href'] and not link['href'].endswith('#comments'):
-                article = {"id": link['href'].split('/')[-1], "url": 'https://www.bbc.co.uk' + link['href'], "title": link.get_text().strip()}
-                articles.append(article)
+                article_id = link['href'].split('/')[-1]
+                article_url = 'https://www.bbc.co.uk' + link['href']
+                article_title = link.get_text().strip()
+                
+                # Check if article already exists in the database
+                if not session.query(Article).filter_by(article_id=article_id).first():
+                    article = Article(article_id=article_id, title=article_title, url=article_url)
+                    session.add(article)
+                    articles.append({"id": article_id, "url": article_url, "title": article_title})
+        
+        session.commit()
         return articles 
     else:
         return []
 
-
-
-
-article_links = fetch_headlines()
-print(article_links)
+fetch_headlines()
