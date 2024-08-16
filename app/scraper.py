@@ -10,7 +10,7 @@ headers = {
     )
 }
 
-def fetch_bbc_headlines():
+def fetch_headlines():
     response = requests.get(url, headers=headers)
     
     if response.status_code == 200:
@@ -20,13 +20,14 @@ def fetch_bbc_headlines():
         articles = []
         for link in all_links:
             if '/news/articles/' in link['href'] and not link['href'].endswith('#comments'):
-
-                articles.append(('https://www.bbc.co.uk' + link['href'], link.get_text().strip()))
-        
-        return articles
+                article = {"id": link['href'].split('/')[-1], "url": 'https://www.bbc.co.uk' + link['href'], "title": link.get_text().strip()}
+                articles.append(article)
+        return articles 
     else:
-        print(f"Failed to retrieve the page. Status code: {response.status_code}")
         return []
 
-article_links = fetch_bbc_headlines()
+
+
+
+article_links = fetch_headlines()
 print(article_links)
