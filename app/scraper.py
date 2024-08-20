@@ -1,8 +1,10 @@
 import requests
+import datetime
 from bs4 import BeautifulSoup
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
 
 url = 'https://www.bbc.co.uk/news'
 headers = {
@@ -22,6 +24,8 @@ class Article(Base):
     article_id = Column(String, unique=True)
     title = Column(String)
     url = Column(String)
+    text = Column(String)
+    retrieved_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 engine = create_engine('sqlite:///bbc_articles.db')
 Base.metadata.create_all(engine)
@@ -36,21 +40,28 @@ def fetch_headlines():
         soup = BeautifulSoup(response.content, 'html.parser')
         all_links = soup.find_all('a', href=True)
         
-        articles = []
         for link in all_links:
             if '/news/articles/' in link['href'] and not link['href'].endswith('#comments'):
                 article_id = link['href'].split('/')[-1]
                 article_url = 'https://www.bbc.co.uk' + link['href']
                 article_title = link.get_text().strip()
                 
-                # Check if article already exists in the database
                 if not session.query(Article).filter_by(article_id=article_id).first():
-                    article = Article(article_id=article_id, title=article_title, url=article_url)
+                    article_response = requests.get(article_url, headers=headers)
+                    soup = BeautifulSoup(article_response.content, 'html.parser')
+                    article_tag = soup.find('article')
+                    if article_tag:
+                        article_soup = BeautifulSoup(str(article_tag), 'html.parser')
+                        text_blocks = article_soup.find_all('div', {'data-component': 'text-block'})
+                        full_text = ""
+                        for block in text_blocks:
+                            block_text = block.get_text(separator=" ", strip=True)
+                            full_text += block_text + " "
+
+                    article = Article(article_id=article_id, title=article_title, url=article_url, text=full_text)
                     session.add(article)
-                    articles.append({"id": article_id, "url": article_url, "title": article_title})
         
         session.commit()
-        return articles 
     else:
         return []
 
