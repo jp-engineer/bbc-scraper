@@ -95,3 +95,5 @@ Database Setup
 The script currently handles a basic structure of the BBC News website. If the website structure changes, the script may require adjustments.
 
 Ensure you comply with the BBC's terms of service and robots.txt file when scraping their website.
+
+some text
